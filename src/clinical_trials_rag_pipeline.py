@@ -1,6 +1,7 @@
 # clinical_trials_rag_pipeline.py
 import logging
 import time
+import os
 from typing import Dict, Any, Optional, List
 from .fetcher import ClinicalTrialsFetcherAgent
 from .clinical_trials_chunker import ClinicalTrialsChunker
@@ -24,10 +25,10 @@ class ClinicalTrialsRAGPipeline:
     
     def __init__(self, 
                  openai_client=None,
-                 model_name: str = "o3",
+                 model_name: str = os.getenv("MODEL_ID_GPT5", "gpt-5-2025-08-07"),
                  embedding_model: str = "text-embedding-ada-002",
-                 max_trials: int = 20,
-                 max_chunks_per_trial: int = 10,
+                 max_trials: int = 5,  # Lowered for faster inference
+                 max_chunks_per_trial: int = 5,  # Lowered for faster inference
                  max_context_length: int = 100000,
                  chunk_size: int = 10000,
                  chunk_overlap: int = 500):
@@ -113,7 +114,7 @@ class ClinicalTrialsRAGPipeline:
         Returns:
             Dictionary containing fetched data and metadata
         """
-        logger.info(f"Fetching clinical trials data for query: '{query}'")
+        logger.info(f"Fetching clinical trials data for query: '{query[:50]}...'")
         
         try:
             # Use the fetcher to analyze query and fetch relevant trials
@@ -217,7 +218,7 @@ class ClinicalTrialsRAGPipeline:
         Returns:
             Dictionary containing context and metadata
         """
-        logger.info(f"Retrieving relevant context for query: '{query}'")
+        logger.info(f"Retrieving relevant context for query: '{query[:50]}...'")
         
         try:
             # Embed the query

@@ -14,7 +14,7 @@ class RAGModule:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model: str = "gpt-4",
+        model: str = os.getenv("MODEL_ID_GPT5", "gpt-5-2025-08-07"),
         temperature: float = 0.0,
         max_tokens: int = 1000
     ):
@@ -45,8 +45,9 @@ class RAGModule:
                     {"role": "system", "content": "You are an expert medical research assistant specializing in evidence-based analysis of scientific literature."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=self.temperature,
-                max_tokens=self.max_tokens
+                # temperature=self.temperature,
+                # max_tokens=self.max_tokens
+                reasoning_effort= "minimal"
             )
             
             answer = response.choices[0].message.content.strip()

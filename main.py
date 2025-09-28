@@ -103,6 +103,7 @@ class BenchmarkComparison:
                 {"role": "system", "content": "You are an expert medical research assistant specializing in evidence-based analysis of scientific literature."},
                 {"role": "user", "content": prompt}
             ],
+            reasoning_effort="minimal",
             # temperature=self.temperature,
             # max_tokens=self.max_tokens
         )
@@ -155,6 +156,7 @@ class BenchmarkComparison:
             ],
             # temperature=self.temperature,
             # max_tokens=self.max_tokens
+            reasoning_effort="minimal",
         )
         
         answer = response.choices[0].message.content.strip()
@@ -189,6 +191,7 @@ class BenchmarkComparison:
             ],
             # temperature=self.temperature,
             # max_tokens=self.max_tokens
+            reasoning_effort="minimal",
         )
         
         answer = response.choices[0].message.content.strip()

@@ -9,6 +9,7 @@ from typing import List, Dict, Any
 from main import BenchmarkComparison
 import json
 import os 
+from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -175,6 +176,7 @@ async def create_comparison_reports_progressive(
 @app.post("/benchmark_comparison/query")
 async def benchmark_comparison(request: QueryRequest):
     try:
+        start_time = datetime.now()
         benchmark_agent = BenchmarkComparison()
         logger.info(f"Received query: {request.query} for model_id: {request.model_id}")
         
@@ -195,35 +197,32 @@ async def benchmark_comparison(request: QueryRequest):
             # print(f"---------------{clinical_trials}")
             clinical_success = clinical_trials['success']
             attempt += 1
-            logger.info(f"Attempt {attempt}: Clinical trials fetch success: {clinical_success}")
+            logger.info(f"Attempt {attempt}: Clinical trials fetch success: {clinical_success} time elapsed: {datetime.now() - start_time}")
             if attempt > 5:
                 break
         
         if clinical_success:
-            # PARALLELIZED VERSION - Choose one of these approaches:
-            
-            # Approach 1: Batch processing with asyncio.gather 
+            # Limit to top 5 NCT IDs for faster parallel comparison
+            clinical_trials_data = clinical_trials['data']
+            if isinstance(clinical_trials_data, dict):
+                # Select top 5 NCT IDs only
+                limited_trials_data = dict(list(clinical_trials_data.items())[:5])
+            else:
+                limited_trials_data = clinical_trials_data
+
             parallel_run_reports = await create_all_comparison_reports_parallel(
                 benchmark_agent=benchmark_agent,
                 query=request.query,
                 local_study=local_study,
-                clinical_trials_data=clinical_trials['data'],
-                max_workers=5  
+                clinical_trials_data=limited_trials_data,
+                max_workers=5  # Lowered for faster inference
             )
-            
+
             individual_reports = parallel_run_reports['individual_reports']
             individual_comparisons = parallel_run_reports['individual_comparisons']
-            # Approach 2: Progressive processing (uncomment to use instead)
-            # individual_reports = await create_comparison_reports_progressive(
-            #     benchmark_agent=benchmark_agent,
-            #     query=request.query,
-            #     local_study=local_study,
-            #     clinical_trials_data=clinical_trials['data'],
-            #     max_workers=5
-            # )
-            
-            logger.info(f"Created {len(individual_reports)} individual comparison reports")
-            
+
+            logger.info(f"Created {len(individual_reports)} individual comparison reports, time elapsed: {datetime.now() - start_time}")
+
             # Create final combined report
             final_report = benchmark_agent.create_benchmark_comparison_combined(
                 question=request.query,
@@ -231,24 +230,21 @@ async def benchmark_comparison(request: QueryRequest):
                 individual_reports=individual_reports
             )
 
+            logger.info(f"Final combined report created, total time elapsed: {datetime.now() - start_time}")
+
             # NEW: parse if it is JSON; fall back gracefully
             try:
                 parsed_final = json.loads(final_report) if isinstance(final_report, str) else final_report
             except json.JSONDecodeError:
                 parsed_final = {"Response": str(final_report), "Statistics": {}}
 
+            logger.info(f"Benchmark comparison process completed successfully in {datetime.now() - start_time}")
+
             return {
                 "local_study": local_study,
                 "clinical_trials": clinical_trials,
                 "individual_comparison": individual_comparisons,
                 "combined_comparison": parsed_final     # <-- now an object, not a string
-            }
-            
-            return {
-                "local_study": local_study,
-                "clinical_trials": clinical_trials,
-                "individual_comparison": individual_comparisons,
-                "combined_comparison": final_report
             }
         else:
             return {
@@ -275,7 +271,7 @@ async def get_summary():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
-        "benchmark_comparison.benchmark_comparison_api:app",
+        "benchmark_comparison_api:app",
         host="0.0.0.0",
         port=8174,
         reload=True

@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class ClinicalTrialsRAGModule:
     """Module for generating answers using clinical trial context via RAG."""
     
-    def __init__(self, model_name: str = "gpt-4-turbo"):
+    def __init__(self, model_name: str = os.getenv("MODEL_ID_GPT5", "gpt-5-2025-08-07")):
         """
         Initialize the RAG module.
         
@@ -188,11 +188,12 @@ Focus on factual information from the trial records and avoid clinical recommend
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.2,  # Lower temperature for more consistent, factual responses
-                max_tokens=2000,
-                top_p=0.9,
-                frequency_penalty=0.1,
-                presence_penalty=0.1
+                # temperature=0.2,  # Lower temperature for more consistent, factual responses
+                # max_tokens=2000,
+                # top_p=0.9,
+                # frequency_penalty=0.1,
+                # presence_penalty=0.1
+                reasoning_effort="minimal",
             )
             
             generation_time = time.time() - start_time
